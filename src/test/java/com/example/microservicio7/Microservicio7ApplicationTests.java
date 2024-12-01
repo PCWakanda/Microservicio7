@@ -9,5 +9,4 @@ class Microservicio7ApplicationTests {
     @Test
     void contextLoads() {
     }
-
 }

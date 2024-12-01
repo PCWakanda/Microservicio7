@@ -2,43 +2,58 @@ package com.example.microservicio7;
 
 import com.example.microservicio7.entidades.Aula;
 import com.example.microservicio7.entidades.CampusDigital;
+import com.example.microservicio7.entidades.Estudiante;
 import com.example.microservicio7.service.GestionAulaCampusService;
+import com.example.microservicio7.service.GestionUsuarioService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.core.Queue;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Component
 public class AulaCampusFlowManager {
 
     private final GestionAulaCampusService gestionAulaCampusService;
+    private final GestionUsuarioService gestionUsuarioService;
     private final RabbitTemplate rabbitTemplate;
     private final SimpleMessageListenerContainer listenerContainer;
+    private final Random random = new Random();
 
     private static final String AULA_QUEUE = "aulaQueue";
     private static final String CAMPUS_QUEUE = "campusQueue";
+    private static final int AFORO_MAXIMO = 10;
 
     public AulaCampusFlowManager(GestionAulaCampusService gestionAulaCampusService,
+                                 GestionUsuarioService gestionUsuarioService,
                                  RabbitTemplate rabbitTemplate,
                                  ConnectionFactory connectionFactory) {
         this.gestionAulaCampusService = gestionAulaCampusService;
+        this.gestionUsuarioService = gestionUsuarioService;
         this.rabbitTemplate = rabbitTemplate;
         this.listenerContainer = new SimpleMessageListenerContainer(connectionFactory);
         configurarRabbitListeners();
+        inicializarAulas();
+    }
+
+    private void inicializarAulas() {
+        List<Aula> aulas = IntStream.range(0, 5)
+                .mapToObj(i -> new Aula((long) i, "Aula " + (i + 1)))
+                .collect(Collectors.toList());
+        aulas.forEach(aula -> gestionAulaCampusService.agregarAula(aula).subscribe());
     }
 
     // Envío de mensajes a RabbitMQ
-    public Mono<Void> enviarAulaCreada(Aula aula) {
-        rabbitTemplate.convertAndSend(AULA_QUEUE, aula);
-        return Mono.empty();
-    }
-
-    public Mono<Void> enviarCampusCreado(CampusDigital campusDigital) {
-        rabbitTemplate.convertAndSend(CAMPUS_QUEUE, campusDigital);
+    public Mono<Void> enviarMensaje(String mensaje) {
+        rabbitTemplate.convertAndSend(AULA_QUEUE, mensaje);
         return Mono.empty();
     }
 
@@ -58,21 +73,66 @@ public class AulaCampusFlowManager {
     // Métodos para flujos
     public Flux<Aula> obtenerFlujoAulas() {
         return gestionAulaCampusService.obtenerTodasAulas()
-                .doOnNext(aula -> enviarAulaCreada(aula).subscribe());
+                .doOnNext(aula -> {
+                    System.out.println("Aula emitida: " + aula);
+                    enviarMensaje("Aula emitida: " + aula.getNombre()).subscribe();
+                });
     }
 
     public Flux<CampusDigital> obtenerFlujoCampus() {
-        return gestionAulaCampusService.obtenerTodosCampus()
-                .doOnNext(campus -> enviarCampusCreado(campus).subscribe());
+        return gestionAulaCampusService.obtenerTodosCampus();
     }
 
-    @Bean
-    public Queue aulaQueue() {
-        return new Queue(AULA_QUEUE);
+    public void gestionarFlujoAlumnos() {
+        Flux.interval(Duration.ofSeconds(3))
+                .flatMap(tic -> gestionAulaCampusService.obtenerTodasAulas()
+                        .collectList()
+                        .flatMapMany(aulas -> Flux.fromIterable(aulas)
+                                .flatMap(aula -> {
+                                    int alumnosEntrando = random.nextInt(8) + 1;
+                                    System.out.println("Alumnos entrando a " + aula.getNombre() + ": " + alumnosEntrando);
+                                    enviarMensaje("Alumnos entrando a " + aula.getNombre() + ": " + alumnosEntrando).subscribe();
+                                    for (int i = 0; i < alumnosEntrando; i++) {
+                                        if (aula.getNumeroEstudiantes() < AFORO_MAXIMO) {
+                                            Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
+                                            aula.agregarEstudiante(estudiante);
+                                            gestionarSalidaEstudiante(aula, estudiante);
+                                        } else {
+                                            System.out.println("Aula " + aula.getNombre() + " llena. Transferir alumno.");
+                                            enviarMensaje("Aula " + aula.getNombre() + " llena. Transferir alumno.").subscribe();
+                                            transferirAlumno(aulas, aula);
+                                        }
+                                    }
+                                    return Mono.just(aula);
+                                })
+                        )
+                )
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe();
     }
 
-    @Bean
-    public Queue campusQueue() {
-        return new Queue(CAMPUS_QUEUE);
+    private void gestionarSalidaEstudiante(Aula aula, Estudiante estudiante) {
+        Flux.interval(Duration.ofSeconds(9))
+                .take(1)
+                .doOnNext(tic -> {
+                    aula.removerEstudiante(estudiante);
+                    gestionUsuarioService.asignarNota(estudiante).subscribe();
+                    System.out.println("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota());
+                    enviarMensaje("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota()).subscribe();
+                })
+                .subscribe();
+    }
+
+    private void transferirAlumno(List<Aula> aulas, Aula aulaLlena) {
+        aulas.stream()
+                .filter(aula -> !aula.equals(aulaLlena) && aula.getNumeroEstudiantes() < AFORO_MAXIMO)
+                .findFirst()
+                .ifPresent(aula -> {
+                    Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
+                    aula.agregarEstudiante(estudiante);
+                    System.out.println("Alumno transferido a " + aula.getNombre());
+                    enviarMensaje("Alumno transferido a " + aula.getNombre()).subscribe();
+                    gestionarSalidaEstudiante(aula, estudiante);
+                });
     }
 }

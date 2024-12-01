@@ -1,26 +1,29 @@
 package com.example.microservicio7.entidades;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
-@Table(name = "aulas")
 public class Aula {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
-    private String descripcion;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Estudiante> estudiantes = new HashSet<>();
+
+    // Constructor, getters y setters
 
     public Aula() {}
 
-    public Aula(String nombre, String descripcion) {
+    public Aula(Long id, String nombre) {
+        this.id = id;
         this.nombre = nombre;
-        this.descripcion = descripcion;
     }
 
     public Long getId() {
@@ -39,11 +42,23 @@ public class Aula {
         this.nombre = nombre;
     }
 
-    public String getDescripcion() {
-        return descripcion;
+    public Set<Estudiante> getEstudiantes() {
+        return estudiantes;
     }
 
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
+    public void setEstudiantes(Set<Estudiante> estudiantes) {
+        this.estudiantes = estudiantes;
+    }
+
+    public void agregarEstudiante(Estudiante estudiante) {
+        this.estudiantes.add(estudiante);
+    }
+
+    public void removerEstudiante(Estudiante estudiante) {
+        this.estudiantes.remove(estudiante);
+    }
+
+    public int getNumeroEstudiantes() {
+        return this.estudiantes.size();
     }
 }

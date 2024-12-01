@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  microservicio7:
+    image: microservicio7:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8099:8080"  # Exponemos el puerto 8080 del microservicio
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker  # Perfil para Docker
+      - SPRING_RABBITMQ_HOST=rabbitmq  # Configuración de RabbitMQ
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql7:3306/my-app
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=P4ssword!
+    depends_on:
+      - rabbitmq  # Esperamos a que RabbitMQ esté disponible
+      - mysql7  # Esperamos a que MySQL esté disponible
+
+  mysql7:
+    image: mysql:8.0
+    ports:
+      - "3315:3306"  # Exponemos el puerto de MySQL
+    environment:
+      MYSQL_ROOT_PASSWORD: P4ssword!
+      MYSQL_DATABASE: my-app
+    volumes:
+      - mysql-data:/var/lib/mysql  # Persistencia de los datos
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"  # Puerto para RabbitMQ
+      - "15672:15672"  # Puerto para la interfaz de administración de RabbitMQ
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+volumes:
+  mysql-data:
+    driver: local

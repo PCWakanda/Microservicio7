@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Service
 public class GestionUsuarioService {
@@ -16,6 +17,7 @@ public class GestionUsuarioService {
     private final Map<Long, Estudiante> estudiantes = new ConcurrentHashMap<>();
     private final Map<Long, Profesor> profesores = new ConcurrentHashMap<>();
     private final Map<Long, Administrativo> administrativos = new ConcurrentHashMap<>();
+    private final Random random = new Random();
 
     public Mono<Estudiante> agregarEstudiante(Estudiante estudiante) {
         estudiantes.put(estudiante.getId(), estudiante);
@@ -34,5 +36,10 @@ public class GestionUsuarioService {
 
     public Flux<Estudiante> obtenerTodosEstudiantes() {
         return Flux.fromIterable(estudiantes.values());
+    }
+
+    public Mono<Estudiante> asignarNota(Estudiante estudiante) {
+        estudiante.setNota(random.nextInt(10) + 1);
+        return Mono.just(estudiante);
     }
 }

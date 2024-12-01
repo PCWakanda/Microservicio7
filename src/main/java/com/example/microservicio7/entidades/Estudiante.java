@@ -1,13 +1,12 @@
 package com.example.microservicio7.entidades;
 
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "estudiantes")
 public class Estudiante {
 
     @Id
@@ -15,6 +14,9 @@ public class Estudiante {
     private Long id;
     private String nombre;
     private String grado;
+    private int nota;
+
+    // Constructor, getters y setters
 
     public Estudiante() {}
 
@@ -45,5 +47,13 @@ public class Estudiante {
 
     public void setGrado(String grado) {
         this.grado = grado;
+    }
+
+    public int getNota() {
+        return nota;
+    }
+
+    public void setNota(int nota) {
+        this.nota = nota;
     }
 }
