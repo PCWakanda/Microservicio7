@@ -62,9 +62,7 @@ public class AulaCampusFlowManager {
         listenerContainer.setQueueNames(AULA_QUEUE, CAMPUS_QUEUE);
 
         listenerContainer.setMessageListener(message -> {
-            String receivedMessage = new String(message.getBody());
-            System.out.println("Mensaje recibido: " + receivedMessage);
-            // Procesar mensaje
+            // Procesar mensaje sin imprimirlo
         });
 
         listenerContainer.start();
@@ -85,59 +83,46 @@ public class AulaCampusFlowManager {
 
     public void gestionarFlujoAlumnos() {
         Flux.interval(Duration.ofSeconds(3))
-                .doOnNext(tic -> System.out.println("TIC" + (tic + 1)))
-                .flatMap(tic -> {
-                    int numEstudiantes = random.nextInt(8) + 1; // Genera entre 1 y 8 estudiantes
-                    return Flux.range(0, numEstudiantes)
-                            .flatMap(i -> {
-                                Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
-                                return gestionAulaCampusService.obtenerTodasAulas()
-                                        .collectList()
-                                        .flatMapMany(aulas -> {
-                                            List<Aula> aulasDisponibles = aulas.stream()
-                                                    .filter(aula -> aula.getNumeroEstudiantes() < AFORO_MAXIMO)
-                                                    .collect(Collectors.toList());
-                                            if (!aulasDisponibles.isEmpty()) {
-                                                Aula aulaSeleccionada = aulasDisponibles.get(random.nextInt(aulasDisponibles.size()));
-                                                aulaSeleccionada.agregarEstudiante(estudiante);
-                                                System.out.println("Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre());
-                                                return gestionAulaCampusService.agregarAula(aulaSeleccionada)
-                                                        .then(enviarMensaje("Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre()))
-                                                        .then(Mono.just(estudiante))
-                                                        .doOnNext(est -> gestionarSalidaEstudiante(aulaSeleccionada, est, tic + 1));
-                                            } else {
-                                                return Mono.empty();
-                                            }
-                                        });
+            .doOnNext(tic -> System.out.println("TIC" + (tic + 1)))
+            .flatMap(tic -> {
+                int numEstudiantes = random.nextInt(8) + 1; // Genera entre 1 y 8 estudiantes
+                return Flux.range(0, numEstudiantes)
+                    .flatMap(i -> {
+                        Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
+                        return gestionAulaCampusService.obtenerTodasAulas()
+                            .collectList()
+                            .flatMapMany(aulas -> {
+                                List<Aula> aulasDisponibles = aulas.stream()
+                                    .filter(aula -> aula.getNumeroEstudiantes() < AFORO_MAXIMO)
+                                    .collect(Collectors.toList());
+                                if (!aulasDisponibles.isEmpty()) {
+                                    Aula aulaSeleccionada = aulasDisponibles.get(random.nextInt(aulasDisponibles.size()));
+                                    aulaSeleccionada.agregarEstudiante(estudiante);
+                                    String mensaje = "Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre();
+                                    System.out.println(mensaje);
+                                    return gestionAulaCampusService.agregarAula(aulaSeleccionada)
+                                        .then(enviarMensaje(mensaje))
+                                        .then(Mono.just(estudiante))
+                                        .doOnNext(est -> gestionarSalidaEstudiante(aulaSeleccionada, est, tic + 1));
+                                } else {
+                                    return Mono.empty();
+                                }
                             });
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe();
+                    });
+            })
+            .subscribeOn(Schedulers.boundedElastic())
+            .subscribe();
     }
 
     private void gestionarSalidaEstudiante(Aula aula, Estudiante estudiante, long ticEntrada) {
         Flux.interval(Duration.ofSeconds(3))
-                .filter(tic -> tic == ticEntrada + 3)
-                .take(1)
-                .doOnNext(tic -> {
-                    aula.removerEstudiante(estudiante);
-                    gestionUsuarioService.asignarNota(estudiante).subscribe();
-                    System.out.println("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota());
-                    enviarMensaje("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota()).subscribe();
-                })
-                .subscribe();
-    }
-
-    private void transferirAlumno(List<Aula> aulas, Aula aulaLlena) {
-        aulas.stream()
-                .filter(aula -> !aula.equals(aulaLlena) && aula.getNumeroEstudiantes() < AFORO_MAXIMO)
-                .findFirst()
-                .ifPresent(aula -> {
-                    Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
-                    aula.agregarEstudiante(estudiante);
-                    System.out.println("Alumno transferido a " + aula.getNombre());
-                    enviarMensaje("Alumno transferido a " + aula.getNombre()).subscribe();
-                    gestionarSalidaEstudiante(aula, estudiante, 0);
-                });
+            .filter(tic -> tic == ticEntrada + 3)
+            .take(1)
+            .doOnNext(tic -> {
+                aula.removerEstudiante(estudiante);
+                gestionUsuarioService.asignarNota(estudiante).subscribe();
+                System.out.println("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota());
+            })
+            .subscribe();
     }
 }
