@@ -30,7 +30,7 @@ public class AulaCampusFlowManager {
 
     private static final String AULA_QUEUE = "aulaQueue";
     private static final String CAMPUS_QUEUE = "campusQueue";
-    private static final int AFORO_MAXIMO = 10;
+    private static final int AFORO_MAXIMO = 20;
 
     public AulaCampusFlowManager(GestionAulaCampusService gestionAulaCampusService,
                                  GestionUsuarioService gestionUsuarioService,
@@ -85,34 +85,39 @@ public class AulaCampusFlowManager {
 
     public void gestionarFlujoAlumnos() {
         Flux.interval(Duration.ofSeconds(3))
-                .flatMap(tic -> gestionAulaCampusService.obtenerTodasAulas()
-                        .collectList()
-                        .flatMapMany(aulas -> Flux.fromIterable(aulas)
-                                .flatMap(aula -> {
-                                    int alumnosEntrando = random.nextInt(8) + 1;
-                                    System.out.println("Alumnos entrando a " + aula.getNombre() + ": " + alumnosEntrando);
-                                    enviarMensaje("Alumnos entrando a " + aula.getNombre() + ": " + alumnosEntrando).subscribe();
-                                    for (int i = 0; i < alumnosEntrando; i++) {
-                                        if (aula.getNumeroEstudiantes() < AFORO_MAXIMO) {
-                                            Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
-                                            aula.agregarEstudiante(estudiante);
-                                            gestionarSalidaEstudiante(aula, estudiante);
-                                        } else {
-                                            System.out.println("Aula " + aula.getNombre() + " llena. Transferir alumno.");
-                                            enviarMensaje("Aula " + aula.getNombre() + " llena. Transferir alumno.").subscribe();
-                                            transferirAlumno(aulas, aula);
-                                        }
-                                    }
-                                    return Mono.just(aula);
-                                })
-                        )
-                )
+                .doOnNext(tic -> System.out.println("TIC" + (tic + 1)))
+                .flatMap(tic -> {
+                    int numEstudiantes = random.nextInt(8) + 1; // Genera entre 1 y 8 estudiantes
+                    return Flux.range(0, numEstudiantes)
+                            .flatMap(i -> {
+                                Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
+                                return gestionAulaCampusService.obtenerTodasAulas()
+                                        .collectList()
+                                        .flatMapMany(aulas -> {
+                                            List<Aula> aulasDisponibles = aulas.stream()
+                                                    .filter(aula -> aula.getNumeroEstudiantes() < AFORO_MAXIMO)
+                                                    .collect(Collectors.toList());
+                                            if (!aulasDisponibles.isEmpty()) {
+                                                Aula aulaSeleccionada = aulasDisponibles.get(random.nextInt(aulasDisponibles.size()));
+                                                aulaSeleccionada.agregarEstudiante(estudiante);
+                                                System.out.println("Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre());
+                                                return gestionAulaCampusService.agregarAula(aulaSeleccionada)
+                                                        .then(enviarMensaje("Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre()))
+                                                        .then(Mono.just(estudiante))
+                                                        .doOnNext(est -> gestionarSalidaEstudiante(aulaSeleccionada, est, tic + 1));
+                                            } else {
+                                                return Mono.empty();
+                                            }
+                                        });
+                            });
+                })
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe();
     }
 
-    private void gestionarSalidaEstudiante(Aula aula, Estudiante estudiante) {
-        Flux.interval(Duration.ofSeconds(9))
+    private void gestionarSalidaEstudiante(Aula aula, Estudiante estudiante, long ticEntrada) {
+        Flux.interval(Duration.ofSeconds(3))
+                .filter(tic -> tic == ticEntrada + 3)
                 .take(1)
                 .doOnNext(tic -> {
                     aula.removerEstudiante(estudiante);
@@ -132,7 +137,7 @@ public class AulaCampusFlowManager {
                     aula.agregarEstudiante(estudiante);
                     System.out.println("Alumno transferido a " + aula.getNombre());
                     enviarMensaje("Alumno transferido a " + aula.getNombre()).subscribe();
-                    gestionarSalidaEstudiante(aula, estudiante);
+                    gestionarSalidaEstudiante(aula, estudiante, 0);
                 });
     }
 }

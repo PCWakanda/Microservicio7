@@ -17,6 +17,11 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql7:3306/my-app
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=P4ssword!
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+
     depends_on:
       - rabbitmq  # Esperamos a que RabbitMQ esté disponible
       - mysql7  # Esperamos a que MySQL esté disponible
@@ -34,7 +39,7 @@ services:
   rabbitmq:
     image: rabbitmq:management
     ports:
-      - "5672:5672"  # Puerto para RabbitMQ
+      - "5672:5673"  # Puerto para RabbitMQ
       - "15672:15672"  # Puerto para la interfaz de administración de RabbitMQ
     environment:
       RABBITMQ_DEFAULT_USER: guest

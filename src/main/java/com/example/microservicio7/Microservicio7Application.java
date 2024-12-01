@@ -21,6 +21,6 @@ public class Microservicio7Application {
     @EventListener(ContextRefreshedEvent.class)
     public void init() {
         flowManager.obtenerFlujoAulas().subscribe();
-
+        flowManager.gestionarFlujoAlumnos(); // Llamada al método para gestionar el flujo de alumnos
     }
 }
