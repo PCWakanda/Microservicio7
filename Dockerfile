@@ -1,14 +1,14 @@
 # Use a base image of Java 21
 FROM openjdk:21-jdk-slim
 
-# Establece el directorio de trabajo
+# Set the working directory
 WORKDIR /app
 
-# Copia el archivo JAR al contenedor
-COPY target/Microservicio7-0.0.1-SNAPSHOT.jar /app/microservicio7.jar
+# Copy the JAR file to the container
+COPY target/Microservicio7-1.0.0.jar /app/microservicio7.jar
 
-# Define el puerto en el que se ejecutará la aplicación
-EXPOSE 8080
+# Define the port on which the application will run
+EXPOSE 8086
 
-# Comando para ejecutar la aplicación con el perfil docker
+# Command to run the application with the docker profile
 ENTRYPOINT ["java", "-jar", "/app/microservicio7.jar", "--spring.profiles.active=docker"]
