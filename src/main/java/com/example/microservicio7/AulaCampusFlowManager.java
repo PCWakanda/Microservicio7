@@ -15,7 +15,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -26,7 +26,7 @@ public class AulaCampusFlowManager {
     private final GestionUsuarioService gestionUsuarioService;
     private final RabbitTemplate rabbitTemplate;
     private final SimpleMessageListenerContainer listenerContainer;
-    private final Random random = new Random();
+    private final AtomicInteger studentCounter = new AtomicInteger(1);
 
     private static final String AULA_QUEUE = "aulaQueue";
     private static final String CAMPUS_QUEUE = "campusQueue";
@@ -85,10 +85,10 @@ public class AulaCampusFlowManager {
         Flux.interval(Duration.ofSeconds(3))
             .doOnNext(tic -> System.out.println("TIC" + (tic + 1)))
             .flatMap(tic -> {
-                int numEstudiantes = random.nextInt(8) + 1; // Genera entre 1 y 8 estudiantes
+                int numEstudiantes = 5; // Número fijo de estudiantes por TIC
                 return Flux.range(0, numEstudiantes)
                     .flatMap(i -> {
-                        Estudiante estudiante = new Estudiante("Estudiante " + random.nextInt(1000), "Grado " + random.nextInt(12));
+                        Estudiante estudiante = new Estudiante("Estudiante " + studentCounter.getAndIncrement(), "Grado " + (studentCounter.get() % 12));
                         return gestionAulaCampusService.obtenerTodasAulas()
                             .collectList()
                             .flatMapMany(aulas -> {
@@ -96,7 +96,7 @@ public class AulaCampusFlowManager {
                                     .filter(aula -> aula.getNumeroEstudiantes() < AFORO_MAXIMO)
                                     .collect(Collectors.toList());
                                 if (!aulasDisponibles.isEmpty()) {
-                                    Aula aulaSeleccionada = aulasDisponibles.get(random.nextInt(aulasDisponibles.size()));
+                                    Aula aulaSeleccionada = aulasDisponibles.get(studentCounter.get() % aulasDisponibles.size());
                                     aulaSeleccionada.agregarEstudiante(estudiante);
                                     String mensaje = "Estudiante " + estudiante.getNombre() + " asignado a " + aulaSeleccionada.getNombre();
                                     System.out.println(mensaje);
