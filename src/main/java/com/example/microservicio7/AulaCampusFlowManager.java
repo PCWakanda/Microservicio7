@@ -103,7 +103,10 @@ public class AulaCampusFlowManager {
                                     return gestionAulaCampusService.agregarAula(aulaSeleccionada)
                                         .then(enviarMensaje(mensaje))
                                         .then(Mono.just(estudiante))
-                                        .doOnNext(est -> gestionarSalidaEstudiante(aulaSeleccionada, est, tic + 1));
+                                        .doOnNext(est -> {
+                                            gestionarSalidaEstudiante(aulaSeleccionada, est, tic + 1);
+                                            iniciarSesion(est);
+                                        });
                                 } else {
                                     return Mono.empty();
                                 }
@@ -124,5 +127,21 @@ public class AulaCampusFlowManager {
                 System.out.println("Estudiante " + estudiante.getNombre() + " salió de " + aula.getNombre() + " con nota: " + estudiante.getNota());
             })
             .subscribe();
+    }
+
+    private void iniciarSesion(Estudiante estudiante) {
+        if (Math.random() > 0.5) { // Simulación de decisión de iniciar sesión
+            estudiante.setHaIniciadoSesion(true);
+            System.out.println("Estudiante " + estudiante.getNombre() + " ha iniciado sesión en el campus virtual.");
+            entregarTarea(estudiante);
+        }
+    }
+
+    private void entregarTarea(Estudiante estudiante) {
+        if (estudiante.isHaIniciadoSesion()) {
+            String[] asignaturas = {"Sistemas Operativos", "Programación Concurrente", "Rubenología", "Matemáticas"};
+            String asignatura = asignaturas[(int) (Math.random() * asignaturas.length)];
+            System.out.println("Estudiante " + estudiante.getNombre() + " ha entregado una tarea en " + asignatura + ".");
+        }
     }
 }

@@ -42,4 +42,16 @@ public class GestionUsuarioService {
         estudiante.setNota(random.nextInt(10) + 1);
         return Mono.just(estudiante);
     }
+
+    public Mono<Estudiante> iniciarSesion(Estudiante estudiante) {
+        estudiante.setHaIniciadoSesion(true);
+        return Mono.just(estudiante);
+    }
+
+    public Mono<Void> entregarTarea(Estudiante estudiante, String asignatura) {
+        if (estudiante.isHaIniciadoSesion()) {
+            System.out.println("Estudiante " + estudiante.getNombre() + " ha entregado una tarea en " + asignatura + ".");
+        }
+        return Mono.empty();
+    }
 }

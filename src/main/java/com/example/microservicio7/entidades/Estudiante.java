@@ -1,6 +1,5 @@
 package com.example.microservicio7.entidades;
 
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +14,7 @@ public class Estudiante {
     private String nombre;
     private String grado;
     private int nota;
+    private boolean haIniciadoSesion;
 
     // Constructor, getters y setters
 
@@ -23,6 +23,7 @@ public class Estudiante {
     public Estudiante(String nombre, String grado) {
         this.nombre = nombre;
         this.grado = grado;
+        this.haIniciadoSesion = false;
     }
 
     public Long getId() {
@@ -55,5 +56,13 @@ public class Estudiante {
 
     public void setNota(int nota) {
         this.nota = nota;
+    }
+
+    public boolean isHaIniciadoSesion() {
+        return haIniciadoSesion;
+    }
+
+    public void setHaIniciadoSesion(boolean haIniciadoSesion) {
+        this.haIniciadoSesion = haIniciadoSesion;
     }
 }

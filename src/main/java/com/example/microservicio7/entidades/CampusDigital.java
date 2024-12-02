@@ -1,10 +1,7 @@
 package com.example.microservicio7.entidades;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "campus_digital")
@@ -16,11 +13,15 @@ public class CampusDigital {
     private String nombre;
     private String ubicacionVirtual;
 
+    @OneToMany
+    private List<Asignatura> asignaturas;
+
     public CampusDigital() {}
 
-    public CampusDigital(String nombre, String ubicacionVirtual) {
+    public CampusDigital(String nombre, String ubicacionVirtual, List<Asignatura> asignaturas) {
         this.nombre = nombre;
         this.ubicacionVirtual = ubicacionVirtual;
+        this.asignaturas = asignaturas;
     }
 
     public Long getId() {
@@ -45,5 +46,13 @@ public class CampusDigital {
 
     public void setUbicacionVirtual(String ubicacionVirtual) {
         this.ubicacionVirtual = ubicacionVirtual;
+    }
+
+    public List<Asignatura> getAsignaturas() {
+        return asignaturas;
+    }
+
+    public void setAsignaturas(List<Asignatura> asignaturas) {
+        this.asignaturas = asignaturas;
     }
 }
