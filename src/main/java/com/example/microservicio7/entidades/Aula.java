@@ -1,64 +1,46 @@
 package com.example.microservicio7.entidades;
 
-import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
-
-import java.util.HashSet;
-import java.util.Set;
-
-@Entity
 public class Aula {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Estudiante> estudiantes = new HashSet<>();
-
-    // Constructor, getters y setters
-
-    public Aula() {}
+    private List<Estudiante> estudiantes = new ArrayList<>();
+    private static final int AFORO_MAXIMO = 15;
 
     public Aula(Long id, String nombre) {
         this.id = id;
         this.nombre = nombre;
     }
 
-    public Long getId() {
-        return id;
+    public void agregarEstudiante(Estudiante estudiante) {
+        if (estudiantes.size() < AFORO_MAXIMO) {
+            estudiantes.add(estudiante);
+        }
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void removerEstudiante(Estudiante estudiante) {
+        estudiantes.remove(estudiante);
+    }
+
+    public List<Estudiante> getEstudiantes() {
+        return estudiantes;
     }
 
     public String getNombre() {
         return nombre;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
-
-    public Set<Estudiante> getEstudiantes() {
-        return estudiantes;
-    }
-
-    public void setEstudiantes(Set<Estudiante> estudiantes) {
-        this.estudiantes = estudiantes;
-    }
-
-    public void agregarEstudiante(Estudiante estudiante) {
-        this.estudiantes.add(estudiante);
-    }
-
-    public void removerEstudiante(Estudiante estudiante) {
-        this.estudiantes.remove(estudiante);
-    }
-
-    public int getNumeroEstudiantes() {
-        return this.estudiantes.size();
+    public void procesarTics() {
+        List<Estudiante> estudiantesASalir = new ArrayList<>();
+        for (Estudiante estudiante : estudiantes) {
+            estudiante.incrementarTics();
+            if (estudiante.getTics() >= 3) {
+                estudiante.setNota((int) (Math.random() * 10) + 1);
+                estudiantesASalir.add(estudiante);
+            }
+        }
+        estudiantes.removeAll(estudiantesASalir);
     }
 }

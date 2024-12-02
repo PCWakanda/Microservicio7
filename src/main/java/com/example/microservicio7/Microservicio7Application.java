@@ -10,10 +10,10 @@ import org.springframework.context.event.EventListener;
 @EnableDiscoveryClient
 public class Microservicio7Application {
 
-    private final AulaCampusFlowManager flowManager;
+    private final FlujoPrincipal flujoPrincipal;
 
-    public Microservicio7Application(AulaCampusFlowManager flowManager) {
-        this.flowManager = flowManager;
+    public Microservicio7Application(FlujoPrincipal flujoPrincipal) {
+        this.flujoPrincipal = flujoPrincipal;
     }
 
     public static void main(String[] args) {
@@ -21,8 +21,7 @@ public class Microservicio7Application {
     }
 
     @EventListener(ContextRefreshedEvent.class)
-    public void init() {
-        flowManager.obtenerFlujoAulas().subscribe();
-        flowManager.gestionarFlujoAlumnos(); // Llamada al método para gestionar el flujo de alumnos
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        flujoPrincipal.iniciarFlujos();
     }
 }

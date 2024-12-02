@@ -1,68 +1,35 @@
 package com.example.microservicio7.entidades;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import java.io.Serializable;
 
-@Entity
-public class Estudiante {
+public class Estudiante implements Serializable {
+    private static final long serialVersionUID = 1L;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     private String nombre;
-    private String grado;
+    private int tics;
     private int nota;
-    private boolean haIniciadoSesion;
 
-    // Constructor, getters y setters
-
-    public Estudiante() {}
-
-    public Estudiante(String nombre, String grado) {
-        this.nombre = nombre;
-        this.grado = grado;
-        this.haIniciadoSesion = false;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public void setNombre(String nombre) {
+    public Estudiante(String nombre) {
         this.nombre = nombre;
     }
 
-    public String getGrado() {
-        return grado;
+    public void incrementarTics() {
+        tics++;
     }
 
-    public void setGrado(String grado) {
-        this.grado = grado;
-    }
-
-    public int getNota() {
-        return nota;
+    public int getTics() {
+        return tics;
     }
 
     public void setNota(int nota) {
         this.nota = nota;
     }
 
-    public boolean isHaIniciadoSesion() {
-        return haIniciadoSesion;
+    public int getNota() {
+        return nota;
     }
 
-    public void setHaIniciadoSesion(boolean haIniciadoSesion) {
-        this.haIniciadoSesion = haIniciadoSesion;
+    public String getNombre() {
+        return nombre;
     }
 }
