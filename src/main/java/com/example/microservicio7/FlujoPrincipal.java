@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
+
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,7 +29,19 @@ public class FlujoPrincipal {
             .doOnNext(tick -> {
                 logger.info("---------------- tic " + tick + " ----------------");
                 logger.info("-----lista estudiantes-----");
-                logger.info("Estudiantes activos: " + estudiantesActivos.values());
+                estudiantesActivos.values().stream()
+                    .sorted(Comparator.comparing(est -> est.getEstudiante().getNombre()))
+                    .forEach(est -> logger.info(est.toString()));
+
+                // Increment tics for each student and remove if tics >= 2
+                estudiantesActivos.values().removeIf(est -> {
+                    est.incrementarTics();
+                    if (est.getTics() >= 2) {
+                        logger.info("Estudiante removido: " + est.getEstudiante());
+                        return true;
+                    }
+                    return false;
+                });
             })
             .flatMap(tick -> Flux.fromIterable(estudianteService.generarEstudiantes()))
             .doOnNext(estudiante -> {
@@ -35,20 +49,6 @@ public class FlujoPrincipal {
                 estudiantesActivos.put(estudiante, estudianteConTics);
                 logger.info("Estudiante añadido: " + estudiante);
                 sink.tryEmitNext(estudiante);
-            })
-            .subscribe();
-
-        sink.asFlux()
-            .delayElements(Duration.ofSeconds(4))
-            .doOnNext(estudiante -> {
-                EstudianteConTics estudianteConTics = estudiantesActivos.get(estudiante);
-                if (estudianteConTics != null) {
-                    estudianteConTics.incrementarTics();
-                    if (estudianteConTics.getTics() >= 2) {
-                        estudiantesActivos.remove(estudiante);
-                        logger.info("Estudiante removido: " + estudiante);
-                    }
-                }
             })
             .subscribe();
     }
