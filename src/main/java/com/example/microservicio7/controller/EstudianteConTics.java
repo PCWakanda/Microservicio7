@@ -1,4 +1,4 @@
-package com.example.microservicio7;
+package com.example.microservicio7.controller;
 
 import com.example.microservicio7.entidades.Estudiante;
 
